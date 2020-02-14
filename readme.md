@@ -1,4 +1,6 @@
-# Expreva in PHP
+# Expreva PHP
+
+This is a parser and interpreter for the [Expreva language](https://expreva.com/), implemented in PHP.
 
 # References
 
