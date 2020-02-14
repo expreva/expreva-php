@@ -1,0 +1,39 @@
+#!/usr/bin/env php
+<?php
+
+namespace Expreva;
+
+require_once __DIR__.'/index.php';
+
+function do_parse($expreva, $str) {
+  $result = $expreva->parse($str);
+  // echo $expreva->to_string($result);
+  echo json_encode($result, JSON_PRETTY_PRINT);
+}
+
+function do_eval($expreva, $str) {
+  $result = $expreva->evaluate($str);
+  if (!is_null($result)) echo json_encode($result);
+}
+
+function do_test($expreva) {
+  require_once __DIR__.'/test/index.php';
+}
+
+$expreva = expreva();
+
+if (count($argv) == 1) {
+  $argv[] = 'test';
+}
+
+if (count($argv) == 2) {
+  $argv[] = '';
+}
+
+$action = 'Expreva\do_' . $argv[1];
+
+if (function_exists($action)) {
+  call_user_func($action, $expreva, $argv[2]);
+} else {
+  error_log('No such action: "' . $argv[1] . '"');
+}

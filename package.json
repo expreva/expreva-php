@@ -1,0 +1,9 @@
+{
+  "name": "expreva-php",
+  "scripts": {
+    "parse": "php run parse",
+    "eval": "php run eval",
+    "test": "php run test"
+  },
+  "license": "MIT"
+}
