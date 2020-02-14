@@ -7,7 +7,7 @@ $t = new \TAP();
 
 try {
 
-  $t->message('symbolic expressions');
+  $t->info('symbolic expressions');
   $t->is($expreva->to_string($expreva->parse('1 + 2')),'(+ 1 2)', 'simple expression');
   $t->is($expreva->to_string($expreva->parse('1 + 2 * 3')),'(+ 1 (* 2 3))','precendence');
   $t->is($expreva->to_string($expreva->parse('a = 1')), '(set a 1)','assignment');
@@ -18,7 +18,7 @@ try {
     '(* (+ 1 2) 3)', 'parenthesized subexpressions'
   );
 
-  $t->message('functions');
+  $t->info('functions');
   $expr = 'f(a,b,c)';
   $t->is($expreva->to_string($expreva->parse($expr)), '(f a b c)', $expr);
 

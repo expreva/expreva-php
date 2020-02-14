@@ -29,7 +29,8 @@ class TAP {
         $this->failed++;
     }
 
-    fprintf(self::$out, "%sok %d%s\n",
+    fprintf(self::$out,
+      "%sok %d%s\n",
       ($val ? '' : 'not '),
       $this->count,
       ($test_name !== null ? ' - ' . $test_name : '')
@@ -38,7 +39,7 @@ class TAP {
     return !!$val;
   }
 
-  function message($msg) {
+  function info($msg) {
 
     $lines = implode("\n",
       array_map(function ($line) {
@@ -46,12 +47,16 @@ class TAP {
       }, explode("\n", $msg))
     );
 
-    fprintf(self::$out,"# %s\n", $msg);
+    fprintf(self::$out, "# %s\n", $msg);
   }
 
   function is($got, $expected, $test_name = null) {
+
+    // TODO: Deep-strict equal
+
     if ($got !== $expected) {
-      fprintf(self::$out,"# %10s: '%s'\n# %10s: '%s'\n",
+      fprintf(self::$out,
+        "# %10s: '%s'\n# %10s: '%s'\n",
         'got', $got, 'expected', $expected
       );
     }
@@ -59,6 +64,6 @@ class TAP {
   }
 
   function done() {
-    fprintf(self::$out,"1..%d\n", $this->count);
+    fprintf(self::$out, "1..%d\n", $this->count);
   }
 }

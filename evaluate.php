@@ -9,8 +9,8 @@ namespace Expreva;
  *
  * - A "runtime object" can have dynamically added functions as properties. The environment is
  * an instance of such an object.
- * - A "runtime function" is an object that can have properties assigned.
- * - A "runtime error" that can throw and catch objects, instead of just strings.
+ * - A "runtime function" is a callable object that can have properties assigned.
+ * - A "runtime error" can throw and catch objects, instead of just strings.
  */
 
 /**
@@ -132,7 +132,8 @@ function expand_macro($ast, $env) {
 
 function evaluate($ast, $given_env = null) {
 
-  $env = !empty($given_env) ? $given_env
+  $env = !empty($given_env)
+    ? $given_env
     : RuntimeEnvironment::$default_env
   ;
 
@@ -159,6 +160,7 @@ function evaluate($ast, $given_env = null) {
         return $f;
 
       // Quote (unevaluated)
+      case '`':
       case 'expr': return $ast[1];
 
       // Get or set an array or object attribute
