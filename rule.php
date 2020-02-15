@@ -15,7 +15,7 @@ class Rule {
   // Regular expression to match a token
   public $match;
 
-  public function __construct($definition) {
+  function __construct($definition) {
     $this->name = $definition['name'];
     $this->match = $definition['match'];
     $this->definition = $definition;
@@ -27,7 +27,7 @@ class Rule {
    * the matched string and returned.  Also returns the length of the match, which is used by
    * the parser to remove the matched text.
    */
-  public function accept($string, $line_index, $column_index) {
+  function accept($string, $line_index, $column_index) {
 
     $matches = [];
 

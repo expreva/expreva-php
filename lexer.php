@@ -43,7 +43,7 @@ class Lexer {
   /**
    * Split `$input` into tokens and return the resulting list.
    */
-  public function tokenize($input) {
+  function tokenize($input) {
 
     $match = '';
     $token = null;

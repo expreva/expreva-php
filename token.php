@@ -39,7 +39,7 @@ class Token {
   public $prefix;
   public $infix;
 
-  public function __construct($definition = []) {
+  function __construct($definition = []) {
     foreach ($definition as $key => $value) {
       $this->$key = ($value instanceof \Closure)
         ? $value->bindTo( $this, $this )
@@ -48,7 +48,7 @@ class Token {
     }
   }
 
-  public function error($message) {
+  function error($message) {
 
     // TODO: Let parser handle this
 
@@ -58,12 +58,10 @@ class Token {
   /**
    * Prefix position
    */
-  public function prefix(Parser &$parser) {
+  function prefix(Parser &$parser) {
     if (!empty($this->prefix)) {
       return call_user_func($this->prefix, $parser);
     }
-
-    // if ($this->name==='(end)') return null;
 
     return $this->error("Unhandled prefix: ".$this->name);
   }
@@ -71,7 +69,7 @@ class Token {
   /**
    * Infix position
    */
-  public function infix(Parser &$parser, $left) {
+  function infix(Parser &$parser, $left) {
     if (!empty($this->infix)) {
       return call_user_func($this->infix, $parser, $left);
     }
@@ -87,8 +85,8 @@ class Token {
 class EndToken extends Token {
   public $name = '(end)';
   public $power = 0;
-  public function prefix(Parser &$parser) {
+  function prefix(Parser &$parser) {
   }
-  public function infix(Parser &$parser, $left) {
+  function infix(Parser &$parser, $left) {
   }
 }

@@ -10,9 +10,10 @@ namespace Expreva;
  * - String wrapped in double- or single-quotes, and escape characters
  * - Arithmetic operations: add, subtract, multply, divide
  * - Assignment with `=`
- * - Group expressions with `(` and `)`
+ * - Group expression with `(` and `)`
  * - Statement separator `;`
- * - Anonymous functions with arguments: `x => body` and `(x, y) => body`
+ * - Anonymous function with arguments: `x =>` and `(x, y) =>`
+ * - Function application with `arg->f`
  *
  * The order of rules below determines the order of regular expression match.
  */
@@ -55,11 +56,8 @@ return [
     'match' => '/^\s*(\))\s*/',
     'name' => 'close expression',
     'power' => 0,
-    'prefix' => function($parser) {
-    },
-    'infix' => function($parser, $left) {
-      return $left;
-    },
+    'prefix' => function($parser) {},
+    'infix' => function($parser, $left) {},
   ],
   [
     'match' => '/^\s*(;)\s*/',
@@ -67,17 +65,14 @@ return [
     'power' => 10,
     'infix' => function($parser, $left) {
 
-      $right = $parser->expression($this->power);
+      $right = $parser->next_expression($this->power);
       if (empty($left) && empty($right)) return;
 
       if (is_array($left) && $left[0] === 'do') {
         $result = $left;
         $result[] = $right;
       } else {
-        $result = ['do', $left];
-        if ($right !== null) {
-          $result[] = $right;
-        }
+        $result = ['do', $left, $right];
       }
 
       return $result;
@@ -85,30 +80,28 @@ return [
   ],
   [
     'match' => '/^\s*(=>)\s*/',
-    'name' => 'fn',
+    'name' => 'lambda',
     'power' => 70,
     'prefix' => function($parser) {
     },
     'infix' => function($parser, $left) {
 
-      // Single argument
-      if (!is_array($left) || (isset($left[0]) && $left[0]==='list')) {
-        $left = [$left];
+      if (!$parser->is_argument_list($left)) {
+        $left = ['args..', $left];
       }
 
-      $left = array_merge($left, $parser->pop_arguments());
-      $right = $parser->expression(0);
-
-      return ['fn', $left, $right];
+      $right = $parser->next_expression(0);
+      return ['lambda', $left, $right];
     },
   ],
   [
     'match' => '/^\s*(->)\s*/', // Must come before `>`
     'name' => '->',
-    'power' => 70,
+    'prefix' => function($parser) {},
+    'power' => 60, // Weaker than `=>`
     'infix' => function($parser, $left) {
-      $right = $parser->expression($this->power);
-      return ['apply', $left, $right];
+      $right = $parser->next_expression(0);
+      return [$right, $left];
     },
   ],
 
@@ -118,7 +111,7 @@ return [
     'power' => 30,
     'prefix' => function($parser) {},
     'infix' => function($parser, $left) {
-      $right = $parser->expression($this->power);
+      $right = $parser->next_expression($this->power);
       return ['==', $left, $right];
     },
   ],
@@ -128,7 +121,7 @@ return [
     'power' => 30,
     'prefix' => function($parser) {},
     'infix' => function($parser, $left) {
-      $right = $parser->expression($this->power);
+      $right = $parser->next_expression($this->power);
       return ['!=', $left, $right];
     },
   ],
@@ -138,7 +131,7 @@ return [
     'power' => 30,
     'prefix' => function($parser) {},
     'infix' => function($parser, $left) {
-      $right = $parser->expression($this->power);
+      $right = $parser->next_expression($this->power);
       return ['<=', $left, $right];
     },
   ],
@@ -148,7 +141,7 @@ return [
     'power' => 30,
     'prefix' => function($parser) {},
     'infix' => function($parser, $left) {
-      $right = $parser->expression($this->power);
+      $right = $parser->next_expression($this->power);
       return ['<', $left, $right];
     },
   ],
@@ -158,7 +151,7 @@ return [
     'power' => 30,
     'prefix' => function($parser) {},
     'infix' => function($parser, $left) {
-      $right = $parser->expression($this->power);
+      $right = $parser->next_expression($this->power);
       return ['>=', $left, $right];
     },
   ],
@@ -168,7 +161,7 @@ return [
     'power' => 30,
     'prefix' => function($parser) {},
     'infix' => function($parser, $left) {
-      $right = $parser->expression($this->power);
+      $right = $parser->next_expression($this->power);
       return ['>', $left, $right];
     },
   ],
@@ -179,7 +172,7 @@ return [
     'power' => 20,
     'prefix' => function() {},
     'infix' => function($parser, $left) {
-      $right = $parser->expression($this->power);
+      $right = $parser->next_expression($this->power);
       return ['set', $left, $right];
     },
   ],
@@ -192,10 +185,10 @@ return [
       /**
        * Positive sign binds stronger than / or *
        */
-      return $parser->expression(70);
+      return $parser->next_expression(70);
     },
     'infix' => function($parser, $left) {
-      $right = $parser->expression($this->power);
+      $right = $parser->next_expression($this->power);
       return ['+', $left, $right];
     },
   ],
@@ -207,10 +200,10 @@ return [
       /**
        * Negative sign binds stronger than / or *
        */
-      return -$parser->expression(70);
+      return -$parser->next_expression(70);
     },
     'infix' => function($parser, $left) {
-      $right = $parser->expression($this->power);
+      $right = $parser->next_expression($this->power);
       return ['-', $left, $right];
     },
   ],
@@ -219,7 +212,7 @@ return [
     'name' => '*',
     'power' => 60,
     'infix' => function($parser, $left) {
-      $right = $parser->expression($this->power);
+      $right = $parser->next_expression($this->power);
       return ['*', $left, $right];
     },
   ],
@@ -228,7 +221,7 @@ return [
     'name' => '/',
     'power' => 60,
     'infix' => function($parser, $left) {
-      $right = $parser->expression($this->power);
+      $right = $parser->next_expression($this->power);
       return ['/', $left, $right];
     },
   ],
@@ -237,13 +230,14 @@ return [
     'name' => 'open expression',
     'power' => 80,
     'prefix' => function($parser) {
-      $value = $parser->expression(0);
-      $rparen = $parser->expression($this->power);
+      $value = $parser->next_expression(0);
+      $rparen = $parser->next_expression($this->power);
       return $value;
     },
     'infix' => function($parser, $left) {
-      $right = $parser->expression(0);
-      $rparen = $parser->expression($this->power);
+      $right = $parser->next_expression(0);
+      $rparen = $parser->next_expression($this->power);
+      if (is_null($left)) return $right;
       return [$left, $right];
     },
   ],
@@ -251,16 +245,17 @@ return [
     'match' => '/^\s*(\,)\s*/',
     'name' => 'argument separator',
     'power' => 5, // Stronger than )
-    'prefix' => function($parser) {
-      $value = $parser->expression($this->power);
-      $parser->push_argument($value);
-    },
+    'prefix' => function($parser) {},
     'infix' => function($parser, $left) {
       /**
-       * Add right side as previous expression's argument
+       * Add right side to argument list
        */
-      $right = $parser->expression($this->power);
-      $parser->push_argument($right);
+      $right = $parser->next_expression($this->power);
+
+      if (!$parser->is_argument_list($left)) {
+        $left = ['args..', $left];
+      }
+      $left []= $right;
       return $left;
     }
   ],

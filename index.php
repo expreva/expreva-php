@@ -5,6 +5,7 @@ require_once __DIR__.'/rule.php';
 require_once __DIR__.'/lexer.php';
 require_once __DIR__.'/parser.php';
 require_once __DIR__.'/evaluate.php';
+require_once __DIR__.'/compile.php';
 
 function expreva($source = null) {
 
@@ -29,24 +30,16 @@ function expreva($source = null) {
             : $this->tokens
           );
         } catch (\Exception $error) {
-          print_r($error instanceof \Expreva\RuntimeError
-          ? $error->get_data()
-          : [
-            'message' => $error->getMessage()
-          ]);
+          $data = $error instanceof Expreva\RuntimeError
+            ? $error->get_data()
+            : [ 'message' => $error->getMessage() ]
+          ;
+          print_r($data);
         }
       }
 
-      function to_string($instrs, $inner = false) {
-
-        if (!is_array($instrs)) {
-          if ($inner) return $instrs;
-          return;
-        }
-
-        return '('. join(' ', array_map(function ($e) {
-            return $this->to_string($e, true);
-          }, $instrs)) . ')';
+      function to_string($instrs) {
+        return Expreva\to_string($instrs);
       }
     };
 

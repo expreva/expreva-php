@@ -2,7 +2,7 @@
 namespace Expreva;
 
 /**
- * This is a Lisp interpreter, based on [miniMAL](https://github.com/kanaka/miniMAL) ported to PHP.
+ * This is a Lisp interpreter based on [miniMAL](https://github.com/kanaka/miniMAL) ported to PHP.
  *
  * Aside from the main functionality (environment, lambda, macro, conditions, tail-call optimization),
  * there are classes that support an object model similar to JavaScript, with first-class functions.
@@ -155,7 +155,9 @@ function evaluate($ast, $given_env = null) {
       // Mark as macro
       case '~':
       case 'macro':
-        $f = new RuntimeFunction(evaluate($ast[1], $env), $env);  // Evaluates to regular function
+        $f = new RuntimeFunction(
+          evaluate($ast[1], $env), $env // Evaluates to regular function
+        );
         $f->is_macro = true;
         return $f;
 
@@ -191,8 +193,8 @@ function evaluate($ast, $given_env = null) {
           ]));
         }
 
-      // Define new function (lambda)
-      case 'fn':
+      // Define new function
+      case 'lambda':
         $f = new RuntimeFunction(function() use ($ast, $env) {
           return evaluate($ast[2], bind_env($ast[1], $env, func_get_args()));
         }, $env);
@@ -252,7 +254,7 @@ function evaluate($ast, $given_env = null) {
     // Invoke list form
 
     $el = eval_ast($ast, $env);
-    if (empty($el) || empty($el[0])) return;
+    if (empty($el)) return $el;
 
     $f = $el[0];
 
@@ -274,7 +276,7 @@ function evaluate($ast, $given_env = null) {
     }
 
     // Calling anything other than function
-    return; // $f Return self?
+    return $el; // Return self?
   }
 }
 

@@ -16,61 +16,52 @@ class Parser {
   public $cursor = 0;
   public $instructions = [];
 
-  public $previous_arguments = [];
-
   function __construct($lexer = null) {
     if ($lexer) $this->lexer = $lexer;
   }
 
-  public function current() {
+  function current() {
     if (isset($this->tokens[ $this->cursor ])) {
       return $this->tokens[ $this->cursor ];
     }
   }
 
-  public function next() {
+  function next() {
     $this->cursor++;
   }
 
   /**
    * Parse string and return the resulting abstract syntax tree.
    */
-  public function parse($input = '') {
+  function parse($input = '') {
 
     $lexer = $this->lexer;
 
     $this->tokens = $lexer->tokenize($input);
     $this->cursor = 0;
     $this->instructions = [];
-    $this->previous_arguments = [];
 
-    $count = 0;
-    $expressions = [];
+    $this->expressions = [];
 
     do {
 
-      $instrs = $this->expression();
+      $instrs = $this->next_expression();
 
       if (is_null($instrs)) $instrs = [];
       if (!is_array($instrs)) $instrs = [$instrs];
-
-      // Handle arguments list
-
-      $instrs = $this->handle_arguments($instrs);
-
       if (empty($instrs)) continue;
 
-      $expressions []= $instrs;
-      $count++;
+      $this->expressions []= $instrs;
 
     } while ($this->current());
 
+    $count = count($this->expressions);
     if ($count===1) {
       // Unwrap expression
-      $this->instructions = $expressions[0];
+      $this->instructions = $this->expressions[0];
     } else if ($count > 1) {
       // Evaluate multiple expressions
-      $this->instructions = ['do', $expressions];
+      $this->instructions = ['do', $this->expressions];
     }
 
     return $this->instructions;
@@ -85,7 +76,7 @@ class Parser {
    * The `prefix` and `infix` methods of tokens call this function to extract expressions on
    * left or right side.
    */
-  public function expression($right_binding_power = 0) {
+  function next_expression($right_binding_power = 0) {
 
     if (!($token = $this->current())) return;
     $this->next();
@@ -99,7 +90,8 @@ class Parser {
       $this->next();
 
       $left = $token->infix($this, $left);
-      if ($this->has_arguments()) return $left;
+
+      $left = $this->expand_arguments($left);
 
       $token = $this->current();
     }
@@ -107,62 +99,36 @@ class Parser {
     return $left;
   }
 
+  function pop_expression() {
+    return array_pop($this->expressions);
+  }
+
+  function push_expression($expr) {
+    $this->expressions []= $expr;
+  }
+
   /**
-   * Handle comma operator to push arguments to previous or parent expression.
-   *
-   * The comma operator pushes the token on its right to a queue of arguments. After the whole
-   * expression is parsed, the arguments are added to it, or its parent expression, by the function
-   * operator `=>`.
+   * Expand arguments list
    */
+  function expand_arguments($expr) {
 
-  function push_argument($instr) {
-    $this->previous_arguments []= $instr;
-  }
+    if (!is_array($expr) || !isset($expr[1])
+      || !$this->is_argument_list($expr[1])
+    ) return $expr;
 
-  function has_arguments() {
-    return isset($this->previous_arguments[0]);
-  }
-
-  function pop_arguments() {
-    $args = $this->previous_arguments;
-    $this->previous_arguments = [];
-    return $args;
-  }
-
-  function handle_arguments($instrs) {
-
-    if (!isset($this->previous_arguments[0])) return $instrs;
-
-    $previous = array_pop($instrs);
-    $has_previous_expression = is_array($previous)
-      // Check if it's a list as single argument
-      && (!isset($previous[0]) || $previous[0]!=='list')
-    ;
-
-    if ($has_previous_expression) {
-
-      // Add to previous expression's argument
-
-      while ($arg = array_shift($this->previous_arguments)) {
-        $previous []= $arg;
-      }
-      $instrs []= $previous;
-      return $instrs;
+    if ($expr[0]==='lambda') {
+      // Argument definition: (lambda, [x, y, z], body)
+      array_shift($expr[1]);
+      return $expr;
     }
 
-    // Push to parent expression
+    // Function call arguments: f(x, y, z)
+    $args = array_pop($expr);
+    array_shift($args);
+    return array_merge($expr, $args);
+  }
 
-    // If not calling a function, make a list
-    if (empty($instrs)) {
-      $instrs []= 'list';
-    }
-
-    // Push previous argument back, and the rest
-    $instrs []= $previous;
-    while ($arg = array_shift($this->previous_arguments)) {
-      $instrs []= $arg;
-    }
-
-    return $instrs;
+  function is_argument_list($expr) {
+    return is_array($expr) && $expr[0]==='args..';
   }
 }
